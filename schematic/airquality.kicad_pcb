@@ -3061,7 +3061,7 @@
         )
       )
     )
-    (model "${KICAD6_3DMODEL_DIR}/RF_Module.3dshapes/ESP32-WROOM-32D.wrl"
+    (model "${KICAD7_3DMODEL_DIR}/RF_Module.3dshapes/ESP32-WROOM-32.step"
       (offset (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
