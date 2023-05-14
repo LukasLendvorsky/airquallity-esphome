@@ -2,19 +2,22 @@ esphome:
   name: llairquality
   includes:
     "helpers.hpp"
-  on_boot:
-    then:
-      - output.turn_on: PMSReset
-      - output.turn_on: PMSSet
-      - light.turn_on:
-          id: indicator
-          effect: "Indicator effect"
-#interval:
-#  - interval: 10s
-#    then:
-#      lambda: !lambda |-
-#        control_indicator(id(ind_worst).state);
-        
+  on_boot: 
+      - priority: 800
+        then:
+          - output.turn_on: PMSReset
+          - output.turn_on: PMSSet
+          #- light.turn_on:
+          #    id: indicator
+          #    effect: Boot
+          #    brightness: 25%
+      - priority: -100
+        then:
+          - light.turn_on:
+              id: indicator
+              effect: IndicatorEffect
+              brightness: 25%
+
 
 esp32:
   board: nodemcu-32s
@@ -41,17 +44,26 @@ wifi:
     ssid: "Llairquality Fallback Hotspot"
     password: "zhp7t0DdJt3d"
 
+
+globals:
+   - id: ind_worst
+     type: int
+     restore_value: no
+     initial_value: '100'
+     setup_priority: 1000
+
 captive_portal:
 
 web_server:
   port: 80
 
-# I2C port for 
+# I2C port for sensors
 i2c:
   scl: GPIO22
   sda: GPIO21
   frequency: 100kHz
 
+# UART for PMS5003
 uart:
   - rx_pin: GPIO16
     tx_pin: GPIO17
@@ -66,16 +78,23 @@ light:
     num_leds: 8
     id: indicator
     name: "Indicator"
+    disabled_by_default: true
+    restore_mode: RESTORE_AND_OFF  
     effects:
+      - pulse:
+          name: "Boot"
+          transition_length: 0.5s
+          update_interval: 0.5s
       - addressable_lambda:
-          name: "Indicator effect"
+          name: "IndicatorEffect"
           update_interval: 1s
           lambda: |-
-            float val = id(ind_worst).state;
+            float val = id(ind_worst);
             Color c = green_to_red((100-val)/100.0);
             it.all() = Color::BLACK;
             uint8_t num = round(val / 100.0 * 8);
             it.range(8-num, 8) = c;
+
 
 sensor:
   # particulate sensor
@@ -94,37 +113,37 @@ sensor:
     uart_id: pms
 
   # Temperature + humidity
-  - platform: bme280
-    temperature:
-      name: "BME280 Temperature"
-      id: bme280_temperature
-    pressure:
-      name: "BME280 Pressure"
-      id: bme280_pressure
-      oversampling: 16x
-    humidity:
-      name: "BME280 Relative Humidity"
-      id: bme280_humidity
-      oversampling: 16x
-    address: 0x76
-    update_interval: 15s
-  - platform: template
-    name: "Altitude"
-    lambda: |-
-      const float STANDARD_SEA_LEVEL_PRESSURE = 1013.25; //in hPa, see note
-      return ((id(bme280_temperature).state + 273.15) / 0.0065) *
-        (powf((STANDARD_SEA_LEVEL_PRESSURE / id(bme280_pressure).state), 0.190234) - 1); // in meter
-    update_interval: 15s
-    icon: 'mdi:signal'
-    unit_of_measurement: 'm'
-  - platform: template
-    name: "Dew Point"
-    lambda: |-
-      return (243.5*(log(id(bme280_humidity).state/100)+((17.67*id(bme280_temperature).state)/
-      (243.5+id(bme280_temperature).state)))/(17.67-log(id(bme280_humidity).state/100)-
-      ((17.67*id(bme280_temperature).state)/(243.5+id(bme280_temperature).state))));
-    unit_of_measurement: °C
-    icon: 'mdi:thermometer-alert'
+  #- platform: bme280
+  #  temperature:
+  #    name: "BME280 Temperature"
+  #    id: bme280_temperature
+  #  pressure:
+  #    name: "BME280 Pressure"
+  #    id: bme280_pressure
+  #    oversampling: 16x
+  #  humidity:
+  #    name: "BME280 Relative Humidity"
+  #    id: bme280_humidity
+  #    oversampling: 16x
+  #  address: 0x76
+  #  update_interval: 15s
+  #- platform: template
+  #  name: "Altitude"
+  #  lambda: |-
+  #    const float STANDARD_SEA_LEVEL_PRESSURE = 1013.25; //in hPa, see note
+  #    return ((id(bme280_temperature).state + 273.15) / 0.0065) *
+  #      (powf((STANDARD_SEA_LEVEL_PRESSURE / id(bme280_pressure).state), 0.190234) - 1); // in meter
+  #  update_interval: 15s
+  #  icon: 'mdi:signal'
+  #  unit_of_measurement: 'm'
+  #- platform: template
+  #  name: "Dew Point"
+  #  lambda: |-
+  #    return (243.5*(log(id(bme280_humidity).state/100)+((17.67*id(bme280_temperature).state)/
+  #    (243.5+id(bme280_temperature).state)))/(17.67-log(id(bme280_humidity).state/100)-
+  #    ((17.67*id(bme280_temperature).state)/(243.5+id(bme280_temperature).state))));
+  #  unit_of_measurement: °C
+  #  icon: 'mdi:thermometer-alert'
 
 
   # VOC + eCO2
@@ -148,7 +167,7 @@ sensor:
     co2:
       name: "CO2"
       id: co2
-      accuracy_decimals: 1
+      accuracy_decimals: 1    
     temperature:
       name: "Temperature SCD30"
       accuracy_decimals: 2
@@ -160,30 +179,34 @@ sensor:
     update_interval: 5s
 
 
-  # Agregate values
+  # Air quality indicators (0% = good, 100% = bad)
   - platform: template
     name: "Indicator CO2"
     id: ind_co2
     lambda: |-
       return to_quality(id(co2).state, 400, 2000);
+    update_interval: 5s
+    on_value:
+       - lambda: |- 
+          update_worst()
   - platform: template
     name: "Indicator pm2,5um"
     id: ind_pm2_5
     lambda: |-
       return to_quality(id(pm_2_5).state, 15, 41);
+    update_interval: 120s
   - platform: template
     name: "Indicator <10.0µm"
     id: ind_pm10
     lambda: |-
       return to_quality(id(pm_10_0).state, 54, 155);
+    update_interval: 120s
   - platform: template
-    name: "Indicator worst"
-    id: ind_worst
+    name: "Indicator Worst"
+    id: ind_worst_sensor
     lambda: |-
-      return max(max(id(ind_co2).state, id(ind_pm2_5).state), id(ind_pm10).state);
-      
-
-
+      return id(ind_worst)
+    update_interval: 5s
 output:
   - platform: gpio
     pin: GPIO4
