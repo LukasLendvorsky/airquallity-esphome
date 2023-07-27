@@ -99,3 +99,16 @@ Color green_to_red(double ratio) {
     rgb rgb = hsv2rgb(color);
     return Color(rgb.r*255, rgb.g*255, rgb.b*255);
 }
+
+
+void update_worst()
+{
+    // separate indicators
+    id(ind_co2).update();
+    id(ind_pm2_5).update();
+    id(ind_pm10).update();
+
+    // overal indicator
+    id(ind_worst) = max(max(id(ind_co2).state, id(ind_pm2_5).state), id(ind_pm10).state);
+    id(ind_worst_sensor).update();
+}
