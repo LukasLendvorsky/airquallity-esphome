@@ -172,6 +172,26 @@ sensor:
     lambda: |- 
       return id(ind_worst);
     update_interval: never
+  
+  # VOC + eCO2
+  #- platform: sgp30
+  #  eco2:
+  #    name: "SGP eCO2"
+  #    accuracy_decimals: 1
+  #  tvoc:
+  #    name: "TVOC"
+  #    accuracy_decimals: 1
+  #  store_baseline: yes
+  #  address: 0x58
+  #  update_interval: 1s
+
+  # Brightness
+  - platform: adc
+    pin: GPIO33
+    name: "Brightness"
+    update_interval: 1s
+
+
 output:
   - platform: gpio
     pin: GPIO4
