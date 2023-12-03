@@ -8,6 +8,9 @@ Air-quality sensor (CO2, particulate matter, ...) in a nice 3D printed package w
 [![front view](images/front.jpg)](images/front.jpg)
 [![side view](images/side.jpg)](images/side.jpg)
 
+[![board front view](images/board_front.png)](images/board_front.png)
+[![side view](images/board_side.png)](images/board_side.png)
+
 ## Features
 - Wi-Fi
 - RGB LED bar for quick visual air-quality indication
