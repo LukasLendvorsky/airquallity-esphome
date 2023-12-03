@@ -1,5 +1,10 @@
+
+substitutions:
+  devicename: mancave-airquality
+  upper_devicename: Mancave Airquality
+
 esphome:
-  name: llairquality
+  name: $devicename
   includes:
     "helpers.hpp"
   on_boot: 
@@ -32,7 +37,6 @@ logger:
 
 # Enable Home Assistant API
 api:
-  password: ""
 
 ota:
   password: ""
@@ -43,7 +47,7 @@ wifi:
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Llairquality Fallback Hotspot"
+    ssid: "$upper_devicename Hotspot"
     password: "zhp7t0DdJt3d"
 
 
@@ -79,7 +83,7 @@ light:
     pin: GPIO13
     num_leds: 8
     id: indicator
-    name: "Indicator"
+    name: "$upper_devicename Indicator"
     restore_mode: RESTORE_AND_OFF
     effects:
       - addressable_scan:
@@ -102,45 +106,45 @@ sensor:
   - platform: pmsx003
     type: PMS5003T
     pm_1_0:
-      name: "Particulate Matter <1.0µm Concentration"
+      name: "$upper_devicename Particulate Matter <1.0µm Concentration"
       id: pm_1_0
       on_value:
         lambda: 'update_worst();'
     pm_2_5:
-      name: "Particulate Matter <2.5µm Concentration"
+      name: "$upper_devicename Particulate Matter <2.5µm Concentration"
       id: pm_2_5
       on_value:
         lambda: 'update_worst();'
     pm_10_0:
-      name: "Particulate Matter <10.0µm Concentration"
+      name: "$upper_devicename Particulate Matter <10.0µm Concentration"
       id: pm_10_0
       on_value:
         lambda: 'update_worst();'
     temperature: 
       id: temperature
-      name: "Temperature"
+      name: "$upper_devicename Temperature"
     humidity:
       id: humidity
-      name: "Humidity"
+      name: "$upper_devicename Humidity"
 
-    update_interval: 120s
+    update_interval: 30s
     uart_id: pms
 
   #CO2 sensor
   - platform: scd30
     id: co2_sensor
     co2:
-      name: "CO2"
+      name: "$upper_devicename CO2"
       id: co2
       accuracy_decimals: 1    
       on_value:
         lambda: 'update_worst();'
     temperature:
-      name: "Temperature SCD30"
+      name: "$upper_devicename Temperature SCD30"
       id: scd_temperature
       accuracy_decimals: 2
     humidity:
-      name: "Humidity SCD30"
+      name: "$upper_devicename Humidity SCD30"
       id: scd_humidity
       accuracy_decimals: 1
     address: 0x61
@@ -149,25 +153,25 @@ sensor:
 
   # Air quality indicators (0% = good, 100% = bad)
   - platform: template
-    name: "Indicator CO2"
+    name: "$upper_devicename Indicator CO2"
     id: ind_co2
     lambda: |-
       return to_quality(id(co2).state, 400, 2000);
     update_interval: never
   - platform: template
-    name: "Indicator pm2,5um"
+    name: "$upper_devicename Indicator pm2,5um"
     id: ind_pm2_5
     lambda: |-
       return to_quality(id(pm_2_5).state, 15, 41);
     update_interval: never
   - platform: template
-    name: "Indicator <10.0µm"
+    name: "$upper_devicename Indicator <10.0µm"
     id: ind_pm10
     lambda: |-
       return to_quality(id(pm_10_0).state, 54, 155);
     update_interval: never
   - platform: template
-    name: "Indicator Worst"
+    name: "$upper_devicename Indicator Worst"
     id: ind_worst_sensor
     lambda: |- 
       return id(ind_worst);
@@ -188,7 +192,7 @@ sensor:
   # Brightness
   - platform: adc
     pin: GPIO33
-    name: "Brightness"
+    name: "$upper_devicename Brightness"
     update_interval: 1s
 
 
